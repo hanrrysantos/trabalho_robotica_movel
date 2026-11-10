@@ -34,6 +34,9 @@ trabalho_robotica_movel/
 │   └── robo_com_braco.ino     ← versão principal, com dois braços e Wi-Fi
 ├── teste_montagem/
 │   └── teste_montagem.ino     ← testa e calibra cada componente
+├── modelos_3d/
+│   ├── README.md               ← relação das peças e orientações gerais
+│   └── *.stl                   ← modelos oficiais para impressão 3D
 └── docs/
     ├── montagem.md            ← ligações e mapa de pinos
     ├── logica_fuzzy.md        ← controlador e modos de operação
@@ -41,6 +44,10 @@ trabalho_robotica_movel/
 ```
 
 Cada sketch `.ino` fica numa pasta com o mesmo nome porque o Arduino IDE exige essa correspondência.
+
+## Modelos para impressão 3D
+
+As nove modelagens oficiais do chassi, da cabeça, dos braços e das demais partes estruturais estão em [`modelos_3d/`](modelos_3d/). Os arquivos estão no formato STL e mantêm no nome o número de revisão de cada peça. Consulte [`modelos_3d/README.md`](modelos_3d/README.md) para identificar os componentes antes de preparar o fatiamento.
 
 ## Como gravar o código
 

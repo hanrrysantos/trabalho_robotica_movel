@@ -20,8 +20,9 @@ const int PIN_TRIG  = 5;
 const int PIN_ECHO  = 33;   // via divisor 1k / 2k
 // Servo SG90
 const int PIN_SERVO = 13;
-// Servo do braço esquerdo
-const int PIN_BRACO = 16;
+// Servos dos braços
+const int PIN_BRACO_ESQ = 17;   // TX2
+const int PIN_BRACO_DIR = 16;   // RX2
 // Driver TB6612FNG
 const int PIN_STBY = 4;
 // Canal A do driver = roda DIREITA
@@ -78,7 +79,8 @@ void menu() {
   Serial.println("3 - Ambas para frente 2s");
   Serial.println("4 - Servo (centro, direita, esquerda, centro)");
   Serial.println("5 - Sensor ultrassônico (20 leituras)");
-  Serial.println("6 - Calibrar o BRAÇO");
+  Serial.println("6 - Calibrar o BRAÇO ESQUERDO");
+  Serial.println("7 - Calibrar o BRAÇO DIREITO");
   Serial.println("Digite o número:");
 }
 
@@ -92,6 +94,26 @@ void testeMotor(const char* nome, const char* flag, int pwm, int in1, int in2) {
   Serial.println("Se girou a roda errada -> canais A/B trocados (avise para ajustar os pinos).");
   Serial.printf("Se girou ao contrário -> no programa principal mude %s para true.\n", flag);
   Serial.println("Se nada aconteceu -> verifique STBY (D4), VM (5V), VCC (3,3V) e GND comum.");
+}
+
+void calibrarBraco(const char* lado, int pino) {
+  Serial.printf("CALIBRAR BRAÇO %s: o servo foi para 90°.\n", lado);
+  escreverServo(pino, 90);
+  Serial.println("1) Solte o parafuso, encaixe o braço esticado para a FRENTE (horizontal) e aperte.");
+  Serial.println("2) Digite um ângulo (0-180) e Enter para testar.");
+  Serial.println("   Mude de 10 em 10 graus para o braço não bater em nada.");
+  Serial.println("3) Digite -1 para sair.");
+  while (true) {
+    while (!Serial.available()) delay(10);
+    int ang = Serial.parseInt();
+    while (Serial.available()) Serial.read();
+    if (ang < 0) break;
+    ang = constrain(ang, 0, 180);
+    escreverServo(pino, ang);
+    Serial.printf("  braço %s em %d°\n", lado, ang);
+  }
+  escreverServo(pino, 90);
+  Serial.printf("Anote BRACO_%s_FRENTE e BRACO_%s_CIMA no programa principal.\n", lado, lado);
 }
 
 void setup() {
@@ -108,7 +130,8 @@ void setup() {
   // canais explícitos: motores no timer 0, servo no timer 2 (frequências diferentes)
   ledcAttachChannel(PIN_SERVO, SERVO_FREQ, SERVO_RES, 4);
   servoAngulo(90);
-  ledcAttachChannel(PIN_BRACO, SERVO_FREQ, SERVO_RES, 5);
+  ledcAttachChannel(PIN_BRACO_ESQ, SERVO_FREQ, SERVO_RES, 5);
+  ledcAttachChannel(PIN_BRACO_DIR, SERVO_FREQ, SERVO_RES, 6);
 
   pararTudo();
   delay(500);
@@ -148,27 +171,8 @@ void loop() {
       }
       Serial.println("Se der sempre 'sem eco' -> confira TRIG (D5), ECHO (D33), VCC do sensor em 5V e o divisor.");
       break;
-    case '6': {
-      Serial.println("CALIBRAR BRAÇO: o servo do braço foi para 90°.");
-      escreverServo(PIN_BRACO, 90);
-      Serial.println("1) Solte o parafuso do braço, encaixe-o esticado para a FRENTE (horizontal) e aperte.");
-      Serial.println("2) Digite um ângulo (0-180) e Enter para testar. Comece com 120.");
-      Serial.println("   Mude de 10 em 10 graus para o braço não bater em nada.");
-      Serial.println("3) Digite -1 para sair.");
-      while (true) {
-        while (!Serial.available()) delay(10);
-        int ang = Serial.parseInt();
-        while (Serial.available()) Serial.read();
-        if (ang < 0) break;
-        ang = constrain(ang, 0, 180);
-        escreverServo(PIN_BRACO, ang);
-        Serial.printf("  braço em %d°\n", ang);
-      }
-      Serial.println("Anote no programa principal:");
-      Serial.println("  BRACO_FRENTE = ângulo com o braço esticado para frente (90 se encaixou como no passo 1)");
-      Serial.println("  BRACO_CIMA   = ângulo com o braço apontando para cima (perto de 180 ou de 0)");
-      break;
-    }
+    case '6': calibrarBraco("ESQ", PIN_BRACO_ESQ); break;
+    case '7': calibrarBraco("DIR", PIN_BRACO_DIR); break;
     default: Serial.println("Opção inválida.");
   }
   menu();

@@ -2,57 +2,62 @@
 
 ## Convenção de direita e esquerda
 
-**Direita e esquerda são sempre do ponto de vista do robô:** imagine-se sentado nele, olhando para onde o sensor aponta. Olhando o robô de frente, os lados ficam invertidos.
+**Direita e esquerda são sempre do ponto de vista do robô:** imagine-se sentado nele, olhando para onde o sensor aponta. Ao olhar o robô de frente, os lados ficam invertidos.
 
 ## Mapa de pinos do ESP32
 
-| GPIO | Nome na placa | Ligado em |
+A tabela corresponde à versão principal, `robo_com_braco.ino`.
+
+| GPIO | Identificação comum na placa | Ligado em |
 |---|---|---|
-| D4 | D4 | TB6612 – STBY |
-| D5 | D5 | HC-SR04 – TRIG |
-| D13 | D13 | Servo da cabeça – sinal (laranja) |
-| D16 | **RX2** | Servo do braço – sinal (laranja), só na versão com braço |
-| D18 | D18 | TB6612 – BIN1 |
-| D19 | D19 | TB6612 – BIN2 |
-| D23 | D23 | TB6612 – PWMB |
-| D25 | D25 | TB6612 – AIN1 |
-| D26 | D26 | TB6612 – AIN2 |
-| D27 | D27 | TB6612 – PWMA |
-| D33 | D33 | HC-SR04 – ECHO (pelo divisor de tensão) |
+| 4 | D4 | TB6612 – STBY |
+| 5 | D5 | HC-SR04 – TRIG |
+| 13 | D13 | Servo da cabeça – sinal |
+| 16 | RX2 | Servo do braço direito – sinal |
+| 17 | TX2 | Servo do braço esquerdo – sinal |
+| 18 | D18 | TB6612 – BIN1 |
+| 19 | D19 | TB6612 – BIN2 |
+| 23 | D23 | TB6612 – PWMB |
+| 25 | D25 | TB6612 – AIN1 |
+| 26 | D26 | TB6612 – AIN2 |
+| 27 | D27 | TB6612 – PWMA |
+| 33 | D33 | HC-SR04 – ECHO, depois do divisor de tensão |
 | 3V3 | 3V3 | TB6612 – VCC |
 | GND | GND | Trilho − da protoboard |
 
-Pinos que **não** devem ser usados em expansões: GPIO 6 a 11 (ligados à memória flash), GPIO 12 (pode impedir a placa de ligar) e GPIO 34, 35, 36 e 39 como saída (só funcionam como entrada).
+Algumas placas imprimem apenas o número, enquanto outras usam os nomes RX2 e TX2. Confirme sempre o **GPIO** antes de ligar. A versão `robo_sem_braco` não utiliza os GPIOs 16 e 17.
+
+Evite usar GPIO 6 a 11, ligados à memória flash, e GPIO 12, que pode interferir na inicialização. GPIO 34, 35, 36 e 39 funcionam apenas como entrada.
 
 ## Alimentação
 
 | De | Para |
 |---|---|
 | Power bank – cabo USB-C | Conector USB-C do ESP32 |
-| Power bank – cabo USB cortado, fio **vermelho** | Trilho **+** da protoboard (5 V) |
-| Power bank – cabo USB cortado, fio **branco** | Trilho **−** da protoboard (GND) |
-| GND do ESP32 | Trilho **−** |
+| Power bank – cabo USB cortado, fio vermelho | Trilho + da protoboard (5 V) |
+| Power bank – cabo USB cortado, fio branco neste cabo | Trilho − da protoboard (GND) |
+| GND do ESP32 | Trilho − |
 
-O GND do ESP32 precisa estar no trilho − para que o ESP32 e o driver tenham a mesma referência de 0 V. Sem isso, os sinais de controle não funcionam.
+O GND do ESP32 precisa estar ligado ao trilho − para que a placa, o driver, o sensor e os servos compartilhem a mesma referência. Sem GND comum, os sinais de controle não funcionam corretamente.
 
-O power bank aceita carga rápida (9 V e 12 V), mas, pelo cabo cortado e sem os fios de dados, ele fornece apenas 5 V. Antes de ligar um cabo cortado novo no circuito, confirme com o multímetro que ele fornece 5 V.
+O cabo cortado deve ser conferido com um multímetro antes da ligação, pois as cores podem variar. O circuito deve receber **5 V**, nunca 9 V ou 12 V.
+
+Motores e três servos podem causar picos de corrente. Se o ESP32 reiniciar durante movimentos, verifique os cabos e a capacidade da fonte. Um capacitor eletrolítico de 470 a 1000 µF entre os trilhos + e − pode ajudar; ligue o terminal marcado com a faixa no −.
 
 ## Driver TB6612FNG
 
 | Pino do TB6612 | Ligado em |
 |---|---|
-| VM | Trilho + (5 V, alimenta os motores) |
-| VCC | 3V3 do ESP32 (alimenta a lógica do driver) |
-| GND | Trilho − (os GNDs do módulo são ligados por dentro; um basta) |
-| STBY | D4 |
-| PWMA / AIN1 / AIN2 | D27 / D25 / D26 |
-| PWMB / BIN1 / BIN2 | D23 / D18 / D19 |
-| AO1 / AO2 | Motor **direito**: AO1 no fio vermelho, AO2 no preto |
-| BO1 / BO2 | Motor **esquerdo**: BO1 no fio preto, BO2 no vermelho |
+| VM | Trilho + (5 V, alimentação dos motores) |
+| VCC | 3V3 do ESP32 (lógica do driver) |
+| GND | Trilho − |
+| STBY | GPIO 4 |
+| PWMA / AIN1 / AIN2 | GPIO 27 / 25 / 26 |
+| PWMB / BIN1 / BIN2 | GPIO 23 / 18 / 19 |
+| AO1 / AO2 | Motor direito: AO1 no fio vermelho, AO2 no preto |
+| BO1 / BO2 | Motor esquerdo: BO1 no fio preto, BO2 no vermelho |
 
-O **canal A controla a roda direita** e o **canal B controla a roda esquerda**. O código já considera isso.
-
-A ordem dos dois fios de um motor dentro do canal só muda o sentido de giro da roda. Se uma roda girar ao contrário, basta mudar `INVERTE_ESQ` ou `INVERTE_DIR` para `true` no código, sem mexer nos fios.
+O canal A controla a roda direita e o canal B controla a esquerda. Se uma roda girar ao contrário, altere `INVERTE_ESQ` ou `INVERTE_DIR` para `true`, sem trocar a lógica do restante do programa.
 
 ## Sensor HC-SR04
 
@@ -60,44 +65,47 @@ A ordem dos dois fios de um motor dentro do canal só muda o sentido de giro da 
 |---|---|
 | VCC | Trilho + (5 V) |
 | GND | Trilho − |
-| TRIG | D5 (direto) |
-| ECHO | Divisor de tensão → D33 |
+| TRIG | GPIO 5, diretamente |
+| ECHO | Divisor de tensão → GPIO 33 |
 
-O sensor trabalha com 5 V, mas o ESP32 só aceita 3,3 V nos pinos. Por isso o ECHO passa por um divisor de tensão feito com três resistores de 1 kΩ:
+O ECHO do HC-SR04 trabalha em 5 V, mas o ESP32 aceita aproximadamente 3,3 V. O sinal deve passar pelo divisor com três resistores de 1 kΩ:
 
-```
+```text
 ECHO ── 1 kΩ ──┬── 1 kΩ ── 1 kΩ ── GND
                │
-              D33
+             GPIO 33
 ```
 
-Em cima fica 1 kΩ e embaixo ficam 2 kΩ (dois resistores em série). A tensão no D33 fica em 5 V × 2k / 3k ≈ **3,3 V**.
+Há 1 kΩ entre ECHO e GPIO 33 e 2 kΩ entre GPIO 33 e GND. A saída fica em aproximadamente 5 V × 2/3 = 3,3 V.
 
-Posição atual na protoboard:
+Posição registrada na protoboard:
 
 | Peça | Furos |
 |---|---|
 | Fio do ECHO | j13 |
-| Resistor 1 (ECHO → D33) | h13 – h9 |
-| Fio para o D33 | f9 |
+| Resistor 1 (ECHO → GPIO 33) | h13 – h9 |
+| Fio para GPIO 33 | f9 |
 | Resistor 2 | i9 – i16 |
 | Resistor 3 | h16 – h20 |
 | Fio para o trilho − | j20 |
 
 ## Servos SG90
 
-| Fio do servo | Servo da cabeça | Servo do braço |
-|---|---|---|
-| Marrom | Trilho − | Trilho − |
-| Vermelho | Trilho + (5 V) | Trilho + (5 V) |
-| Laranja (sinal) | D13 | D16 (RX2) |
+| Fio do servo | Cabeça | Braço esquerdo | Braço direito |
+|---|---|---|---|
+| Marrom | Trilho − | Trilho − | Trilho − |
+| Vermelho | Trilho + (5 V) | Trilho + (5 V) | Trilho + (5 V) |
+| Laranja (sinal) | GPIO 13 | GPIO 17 (TX2) | GPIO 16 (RX2) |
 
-Os servos precisam dos 5 V do trilho +. Nunca ligue o vermelho no 3V3.
+Nunca ligue o fio vermelho de um servo ao pino 3V3.
 
-O braço é preso no lado **esquerdo** do chassi e se move apenas entre "esticado para a frente" e "apontando para cima". O código não deixa o braço apontar para baixo nem para trás, para ele não bater no chão nem na roda.
+Os braços são instalados nos lados correspondentes do chassi. O programa principal limita cada um ao intervalo entre “esticado para a frente” e “apontando para cima”, evitando o chão e as rodas. Como os servos ficam espelhados, os ângulos de “cima” normalmente são opostos: na configuração atual, 0° para o esquerdo e 180° para o direito.
+
+Antes de fixar definitivamente as hastes, execute as opções 6 e 7 de `teste_montagem.ino` e siga [calibracao.md](calibracao.md).
 
 ## Lembretes sobre a protoboard
 
-- Os 5 furos de uma linha (a–e, ou f–j) são ligados entre si, então qualquer furo da mesma linha serve.
-- O canal do meio separa os lados: o furo e de uma linha **não** está ligado ao furo f.
-- Os trilhos + e − correm ao longo da placa. Em algumas protoboards o trilho é interrompido no meio, e as duas metades não se conectam.
+- Os cinco furos de uma linha (a–e ou f–j) são interligados.
+- O canal central separa os lados: o furo “e” não está ligado ao “f”.
+- Os trilhos + e − podem ser interrompidos no meio em algumas protoboards; confira a continuidade.
+- Desligue a alimentação antes de mover jumpers, servos ou conexões do driver.
